@@ -1,1 +1,10 @@
-{"name":"문제풀이 앱 v2","short_name":"문제풀이 v2","start_url":"./index.html","scope":"./","display":"standalone","background_color":"#f4f6fa","theme_color":"#244062","lang":"ko-KR"}
+{
+  "name": "문제풀이 앱 v2.1",
+  "short_name": "문제풀이 v2.1",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fa",
+  "theme_color": "#244062",
+  "lang": "ko-KR"
+}
