@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#17152f">
 <meta name="description" content="하늘 친구들을 터치해 점수를 모으는 60초 픽셀 아트 힐링 게임">
 <title>Shooting star와 친구들 — 픽셀 힐링 게임</title>
@@ -33,25 +33,28 @@
   .game-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;background:var(--panel);border-bottom:3px solid #514d80;font-size:11px}
   .status{color:var(--mint);display:flex;align-items:center;gap:7px}
   .status-dot{width:8px;height:8px;background:var(--pink);display:inline-block;box-shadow:0 0 0 2px #6b396a}
-  .arena{height:clamp(310px,57vh,490px);min-height:300px;position:relative;overflow:hidden;isolation:isolate;
+  
+  /* 아이폰에서 아레나 높이 고정 및 버그 방지 */
+  .arena{height:380px;position:relative;overflow:hidden;isolation:isolate;
     background:linear-gradient(#242958 0%,#293d6d 60%,#426b8a 100%);touch-action:manipulation}
+    
   .stars-bg{position:absolute;inset:0;pointer-events:none;opacity:.9;background-image:
     radial-gradient(circle,#fff4c7 1.5px,transparent 2px),
     radial-gradient(circle,#9bf6d2 1px,transparent 1.7px),
     radial-gradient(circle,#ff9ac8 1px,transparent 1.7px);
     background-size:71px 83px,97px 111px,131px 91px;background-position:8px 13px,37px 21px,64px 40px}
-  .horizon{position:absolute;bottom:0;left:0;right:0;height:37px;background:#27325b;border-top:4px solid #6d83a6;pointer-events:none}
+  .horizon{position:absolute;bottom:0;left:0;right:0;height:37px;background:#27325b;border-top:4px solid #6d83a6;pointer-events:none;z-index:3}
   .horizon:before,.horizon:after{content:"";position:absolute;bottom:0;width:100%;height:12px;background:repeating-linear-gradient(90deg,#35446f 0 14px,#27325b 14px 28px)}
   .horizon:after{height:4px;bottom:16px;background:repeating-linear-gradient(90deg,#8bd8ff 0 4px,transparent 4px 22px);opacity:.55}
   
-  .sprite{position:absolute;z-index:2;border:0;background:transparent;padding:0;line-height:1;display:grid;place-items:center;
-    width:56px;height:56px;font-size:39px;filter:drop-shadow(3px 4px 0 #15132f);
+  .sprite{position:absolute;z-index:4;border:0;background:transparent;padding:0;line-height:1;display:flex;align-items:center;justify-content:center;
+    width:60px;height:60px;font-size:38px;filter:drop-shadow(3px 4px 0 #15132f);
     -webkit-tap-highlight-color:transparent; user-select:none; cursor:pointer;}
   .sprite:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
 
   .sprite.popped{animation:pop .22s steps(3,end) forwards;pointer-events:none}
   @keyframes pop{0%{transform:scale(1);opacity:1}55%{transform:scale(1.5);opacity:1}100%{transform:scale(.2);opacity:0}}
-  .float-score{position:absolute;z-index:5;pointer-events:none;color:var(--yellow);font-weight:900;font-size:15px;text-shadow:2px 2px #17152f;animation:floatup .7s ease-out forwards}
+  .float-score{position:absolute;z-index:6;pointer-events:none;color:var(--yellow);font-weight:900;font-size:15px;text-shadow:2px 2px #17152f;animation:floatup .7s ease-out forwards}
   @keyframes floatup{to{transform:translateY(-35px);opacity:0}}
   .overlay{position:absolute;z-index:10;inset:0;background:#15142edb;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center}
   .overlay[hidden]{display:none}
@@ -228,7 +231,6 @@
     spawnOne();
     state.spawnTimer=setInterval(spawnOne, 650);
     
-    // 게임 루프 시작 (JS로 직접 좌표 이동)
     lastFrameTime = performance.now();
     animationFrameId = requestAnimationFrame(updateSprites);
 
@@ -260,19 +262,27 @@
     el.type="button"; el.className="sprite"; el.textContent=c.emoji;
     el.setAttribute("aria-label",`${c.name} 터치, ${c.points}점`);
     
-    const maxX=Math.max(0, arena.clientWidth - 56);
+    const maxW = arena.clientWidth > 0 ? arena.clientWidth : 320;
+    const maxX = Math.max(0, maxW - 60);
     const startX = Math.random() * maxX;
-    const startY = -65;
-    const speed = 70 + Math.random() * 60; // 픽셀/초 속도
+    const startY = -60;
+    const speed = 75 + Math.random() * 55; // 아이폰에서도 보기 좋은 속도
     
     el.style.left = `${startX}px`;
     el.style.top = `${startY}px`;
     
     el.dataset.id=c.id;
-    el.addEventListener("pointerdown",(event)=> {
+    
+    // 아이폰 터치(touchstart)와 마우스(pointerdown) 모두 완벽 대응
+    const handleTouch = (event) => {
       event.preventDefault();
-      collect(el,c,event.clientX,event.clientY);
-    },{passive:false});
+      const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+      const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+      collect(el, c, clientX, clientY);
+    };
+
+    el.addEventListener("touchstart", handleTouch, {passive: false});
+    el.addEventListener("pointerdown", handleTouch, {passive: false});
     
     arena.appendChild(el);
     activeSprites.add({ el: el, x: startX, y: startY, speed: speed });
@@ -284,7 +294,7 @@
     const dt = (timestamp - lastFrameTime) / 1000;
     lastFrameTime = timestamp;
 
-    const limitY = arena.clientHeight + 60;
+    const limitY = (arena.clientHeight > 0 ? arena.clientHeight : 380) - 30;
     activeSprites.forEach((obj) => {
       obj.y += obj.speed * dt;
       obj.el.style.top = `${obj.y}px`;
@@ -302,7 +312,6 @@
     if (!state.running || el.classList.contains("popped")) return;
     el.classList.add("popped");
     
-    // activeSprites에서 제거
     for (const obj of activeSprites) {
       if (obj.el === el) {
         activeSprites.delete(obj);
@@ -319,6 +328,7 @@
     state.score+=earned;
     state.perCharacter[c.id]+=earned;
     state.collected[c.id]++;
+    
     const rect=arena.getBoundingClientRect();
     const fx=clientX ? clientX-rect.left : parseFloat(el.style.left)+25;
     const fy=clientY ? clientY-rect.top : el.offsetTop;
