@@ -46,14 +46,8 @@
   
   .sprite{position:absolute;z-index:2;border:0;background:transparent;padding:0;line-height:1;display:grid;place-items:center;
     width:56px;height:56px;font-size:39px;filter:drop-shadow(3px 4px 0 #15132f);
-    animation:fall linear forwards; -webkit-tap-highlight-color:transparent; user-select:none;
-    top: 0;}
+    -webkit-tap-highlight-color:transparent; user-select:none; cursor:pointer;}
   .sprite:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
-  
-  @keyframes fall{
-    0%{ transform:translateY(-60px) rotate(-8deg); }
-    100%{ transform:translateY(var(--fall-distance,500px)) rotate(12deg); }
-  }
 
   .sprite.popped{animation:pop .22s steps(3,end) forwards;pointer-events:none}
   @keyframes pop{0%{transform:scale(1);opacity:1}55%{transform:scale(1.5);opacity:1}100%{transform:scale(.2);opacity:0}}
@@ -157,6 +151,7 @@
   characters.forEach(c => { state.perCharacter[c.id]=0; state.collected[c.id]=0; });
   const arena = $("arena");
   const activeSprites = new Set();
+  let animationFrameId = null;
   let bestScore = safeRead("skytap-best-score", 0);
   let bestComboSaved = safeRead("skytap-best-combo", 0);
   $("bestLabel").textContent = `BEST ${pad(bestScore)}`;
@@ -199,8 +194,12 @@
     $("bestCombo").textContent = `x${Math.max(bestComboSaved,state.bestCombo)}`;
   }
   function clearSprites() {
-    activeSprites.forEach(el => el.remove());
+    activeSprites.forEach(obj => obj.el.remove());
     activeSprites.clear();
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
     arena.querySelectorAll(".float-score").forEach(el => el.remove());
   }
   function resetState() {
@@ -225,8 +224,14 @@
     state.endAt=Date.now()+60000;
     $("gameStatus").textContent="GAME IN PROGRESS";
     $("startBtn").disabled=false;
+    
     spawnOne();
     state.spawnTimer=setInterval(spawnOne, 650);
+    
+    // 게임 루프 시작 (JS로 직접 좌표 이동)
+    lastFrameTime = performance.now();
+    animationFrameId = requestAnimationFrame(updateSprites);
+
     state.tickTimer=setInterval(() => {
       state.timeLeft=Math.max(0,(state.endAt-Date.now())/1000);
       updateUI();
@@ -255,27 +260,56 @@
     el.type="button"; el.className="sprite"; el.textContent=c.emoji;
     el.setAttribute("aria-label",`${c.name} 터치, ${c.points}점`);
     
-    const maxX=Math.max(0,arena.clientWidth-56);
-    el.style.left=`${Math.random()*maxX}px`;
+    const maxX=Math.max(0, arena.clientWidth - 56);
+    const startX = Math.random() * maxX;
+    const startY = -65;
+    const speed = 70 + Math.random() * 60; // 픽셀/초 속도
     
-    const duration=3.5+Math.random()*2.2;
-    el.style.animationDuration=`${duration}s`;
-    
-    const fallDistance = arena.clientHeight + 80;
-    el.style.setProperty("--fall-distance", `${fallDistance}px`);
+    el.style.left = `${startX}px`;
+    el.style.top = `${startY}px`;
     
     el.dataset.id=c.id;
     el.addEventListener("pointerdown",(event)=> {
       event.preventDefault();
       collect(el,c,event.clientX,event.clientY);
     },{passive:false});
-    el.addEventListener("animationend",()=>{activeSprites.delete(el);el.remove();});
-    activeSprites.add(el);
+    
     arena.appendChild(el);
+    activeSprites.add({ el: el, x: startX, y: startY, speed: speed });
   }
+
+  let lastFrameTime = 0;
+  function updateSprites(timestamp) {
+    if (!state.running) return;
+    const dt = (timestamp - lastFrameTime) / 1000;
+    lastFrameTime = timestamp;
+
+    const limitY = arena.clientHeight + 60;
+    activeSprites.forEach((obj) => {
+      obj.y += obj.speed * dt;
+      obj.el.style.top = `${obj.y}px`;
+
+      if (obj.y > limitY) {
+        obj.el.remove();
+        activeSprites.delete(obj);
+      }
+    });
+
+    animationFrameId = requestAnimationFrame(updateSprites);
+  }
+
   function collect(el,c,clientX,clientY) {
     if (!state.running || el.classList.contains("popped")) return;
     el.classList.add("popped");
+    
+    // activeSprites에서 제거
+    for (const obj of activeSprites) {
+      if (obj.el === el) {
+        activeSprites.delete(obj);
+        break;
+      }
+    }
+
     const now=Date.now();
     state.combo=(now-state.lastTap<=1400)?state.combo+1:1;
     state.lastTap=now;
@@ -297,6 +331,8 @@
     setTimeout(()=>floater.remove(),750);
     playTone(420+c.points*100,0.055);
     updateUI();
+
+    setTimeout(() => el.remove(), 220);
   }
   function playTone(freq,duration) {
     if (!state.sound) return;
