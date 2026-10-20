@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#17152f">
-<meta name="description" content="하늘 친구들을 터치해 점수를 모으는 60초 픽셀 아트 힐링 게임">
+<meta name="description" content="하늘 친구들을 터치해 점수를 모으는 30초 픽셀 아트 힐링 게임">
 <title>Shooting star와 친구들 — 픽셀 힐링 게임</title>
 <style>
   :root{
@@ -34,7 +34,6 @@
   .status{color:var(--mint);display:flex;align-items:center;gap:7px}
   .status-dot{width:8px;height:8px;background:var(--pink);display:inline-block;box-shadow:0 0 0 2px #6b396a}
   
-  /* 아이폰에서 아레나 높이 고정 및 버그 방지 */
   .arena{height:380px;position:relative;overflow:hidden;isolation:isolate;
     background:linear-gradient(#242958 0%,#293d6d 60%,#426b8a 100%);touch-action:manipulation}
     
@@ -94,7 +93,7 @@
 
   <section class="stats" aria-label="게임 점수">
     <div class="stat"><div class="stat-label">TOTAL SCORE</div><div class="stat-value" id="totalScore">000</div></div>
-    <div class="stat"><div class="stat-label">TIME LEFT</div><div class="stat-value" id="timeValue">60</div></div>
+    <div class="stat"><div class="stat-label">TIME LEFT</div><div class="stat-value" id="timeValue">30</div></div>
     <div class="stat"><div class="stat-label">COMBO</div><div class="stat-value" id="comboValue">x0</div></div>
   </section>
   <div class="progress" aria-label="남은 시간"><div id="timeBar"></div></div>
@@ -111,7 +110,7 @@
         <div class="overlay-card">
           <div class="hero-emoji" id="overlayEmoji">🌙⭐☁️</div>
           <h1 id="overlayTitle">Shooting star와 친구들</h1>
-          <p id="overlayText">60초 동안 떨어지는 하늘 친구들을 터치해 봐.<br>연속으로 터치하면 콤보 보너스가 쌓여!</p>
+          <p id="overlayText">30초 동안 떨어지는 하늘 친구들을 터치해 봐.<br>연속으로 터치하면 콤보 보너스가 쌓여!</p>
           <button class="main-btn" id="startBtn">▶ 게임 시작</button>
         </div>
       </div>
@@ -147,7 +146,7 @@
     {id:"storm", emoji:"⛈️", name:"폭풍", points:3}
   ];
   const state = {
-    running:false, ended:false, score:0, timeLeft:60, combo:0, bestCombo:0,
+    running:false, ended:false, score:0, timeLeft:30, combo:0, bestCombo:0,
     lastTap:0, perCharacter:{}, collected:{}, spawnTimer:null, tickTimer:null,
     sound:false, audio:null, endAt:0
   };
@@ -185,7 +184,7 @@
     $("totalScore").textContent = pad(state.score);
     $("timeValue").textContent = String(Math.ceil(state.timeLeft)).padStart(2,"0");
     $("comboValue").textContent = `x${state.combo}`;
-    $("timeBar").style.width = `${Math.max(0,state.timeLeft/60*100)}%`;
+    $("timeBar").style.width = `${Math.max(0,state.timeLeft/30*100)}%`;
     $("timeBar").style.background = state.timeLeft <= 10 ? "var(--pink)" : "var(--mint)";
     characters.forEach(c => {
       $(`score-${c.id}`).textContent = state.perCharacter[c.id];
@@ -206,7 +205,7 @@
     arena.querySelectorAll(".float-score").forEach(el => el.remove());
   }
   function resetState() {
-    state.score=0; state.timeLeft=60; state.combo=0; state.bestCombo=0; state.lastTap=0;
+    state.score=0; state.timeLeft=30; state.combo=0; state.bestCombo=0; state.lastTap=0;
     state.ended=false;
     characters.forEach(c => { state.perCharacter[c.id]=0; state.collected[c.id]=0; });
     updateUI();
@@ -224,12 +223,12 @@
     clearSprites();
     $("overlay").hidden=true;
     state.running=true;
-    state.endAt=Date.now()+60000;
+    state.endAt=Date.now()+30000; // 30초로 변경
     $("gameStatus").textContent="GAME IN PROGRESS";
     $("startBtn").disabled=false;
     
     spawnOne();
-    state.spawnTimer=setInterval(spawnOne, 650);
+    state.spawnTimer=setInterval(spawnOne, 600); // 생성 간격도 약간 더 스릴있게 단축
     
     lastFrameTime = performance.now();
     animationFrameId = requestAnimationFrame(updateSprites);
@@ -266,14 +265,13 @@
     const maxX = Math.max(0, maxW - 60);
     const startX = Math.random() * maxX;
     const startY = -60;
-    const speed = 75 + Math.random() * 55; // 아이폰에서도 보기 좋은 속도
+    const speed = 110 + Math.random() * 65; // 속도를 기존보다 더 빠르게 상향 조정
     
     el.style.left = `${startX}px`;
     el.style.top = `${startY}px`;
     
     el.dataset.id=c.id;
     
-    // 아이폰 터치(touchstart)와 마우스(pointerdown) 모두 완벽 대응
     const handleTouch = (event) => {
       event.preventDefault();
       const clientX = event.clientX || (event.touches && event.touches[0].clientX);
@@ -364,7 +362,7 @@
     if (state.running) { clearInterval(state.spawnTimer);clearInterval(state.tickTimer); }
     state.running=false;state.ended=false;
     clearSprites();resetState();$("gameStatus").textContent="READY TO PLAY";
-    showOverlay("🌙⭐☁️","Shooting star와 친구들","60초 동안 떨어지는 하늘 친구들을 터치해 봐.<br>연속으로 터치하면 콤보 보너스가 쌓여!","▶ 게임 시작");
+    showOverlay("🌙⭐☁️","Shooting star와 친구들","30초 동안 떨어지는 하늘 친구들을 터치해 봐.<br>연속으로 터치하면 콤보 보너스가 쌓여!","▶ 게임 시작");
   });
   $("soundBtn").addEventListener("click",()=>{
     state.sound=!state.sound;
