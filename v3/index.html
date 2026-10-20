@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17152f">
 <meta name="description" content="하늘 친구들을 터치해 점수를 모으는 60초 픽셀 아트 힐링 게임">
-<title>하늘 터치! — 픽셀 힐링 게임</title>
+<title>Shooting star와 친구들 — 픽셀 힐링 게임</title>
 <style>
   :root{
     --ink:#17152f; --panel:#25234b; --panel2:#302d5a; --cream:#fff4c7;
@@ -43,11 +43,18 @@
   .horizon{position:absolute;bottom:0;left:0;right:0;height:37px;background:#27325b;border-top:4px solid #6d83a6;pointer-events:none}
   .horizon:before,.horizon:after{content:"";position:absolute;bottom:0;width:100%;height:12px;background:repeating-linear-gradient(90deg,#35446f 0 14px,#27325b 14px 28px)}
   .horizon:after{height:4px;bottom:16px;background:repeating-linear-gradient(90deg,#8bd8ff 0 4px,transparent 4px 22px);opacity:.55}
+  
   .sprite{position:absolute;z-index:2;border:0;background:transparent;padding:0;line-height:1;display:grid;place-items:center;
     width:56px;height:56px;font-size:39px;filter:drop-shadow(3px 4px 0 #15132f);
-    animation:fall linear forwards; -webkit-tap-highlight-color:transparent; user-select:none}
+    animation:fall linear forwards; -webkit-tap-highlight-color:transparent; user-select:none;
+    top: 0;}
   .sprite:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
-  @keyframes fall{from{transform:translateY(-75px) rotate(-8deg)}to{transform:translateY(var(--fall-distance,560px)) rotate(12deg)}}
+  
+  @keyframes fall{
+    0%{ transform:translateY(-60px) rotate(-8deg); }
+    100%{ transform:translateY(var(--fall-distance,500px)) rotate(12deg); }
+  }
+
   .sprite.popped{animation:pop .22s steps(3,end) forwards;pointer-events:none}
   @keyframes pop{0%{transform:scale(1);opacity:1}55%{transform:scale(1.5);opacity:1}100%{transform:scale(.2);opacity:0}}
   .float-score{position:absolute;z-index:5;pointer-events:none;color:var(--yellow);font-weight:900;font-size:15px;text-shadow:2px 2px #17152f;animation:floatup .7s ease-out forwards}
@@ -84,7 +91,7 @@
 <body>
 <main class="app">
   <header class="topline">
-    <div class="brand">☁ SKY TAP! ☀</div>
+    <div class="brand">☄ Shooting star와 친구들</div>
     <div class="pixel-tag">PIXEL HEALING GAME</div>
   </header>
 
@@ -106,7 +113,7 @@
       <div class="overlay" id="overlay">
         <div class="overlay-card">
           <div class="hero-emoji" id="overlayEmoji">🌙⭐☁️</div>
-          <h1 id="overlayTitle">하늘 친구를 모아봐!</h1>
+          <h1 id="overlayTitle">Shooting star와 친구들</h1>
           <p id="overlayText">60초 동안 떨어지는 하늘 친구들을 터치해 봐.<br>연속으로 터치하면 콤보 보너스가 쌓여!</p>
           <button class="main-btn" id="startBtn">▶ 게임 시작</button>
         </div>
@@ -127,7 +134,7 @@
     <div class="mini-panel"><div class="mini-label">MOST COLLECTED</div><div class="mini-value" id="favorite">아직 없어</div></div>
   </section>
   <p class="hint">TIP: 캐릭터를 빠르게 연속 터치해 콤보를 만들어 봐!<br>☀ 해 · 🌙 달 · ⭐ 별 · ☁ 구름 · 🌧 비 · ⛈ 폭풍</p>
-  <footer class="footer">작은 터치로 모으는 오늘의 하늘 · SKY TAP! v1.0</footer>
+  <footer class="footer">Shooting star와 친구들 · 작은 터치로 모으는 오늘의 하늘</footer>
 </main>
 
 <script>
@@ -247,12 +254,16 @@
     const el=document.createElement("button");
     el.type="button"; el.className="sprite"; el.textContent=c.emoji;
     el.setAttribute("aria-label",`${c.name} 터치, ${c.points}점`);
+    
     const maxX=Math.max(0,arena.clientWidth-56);
     el.style.left=`${Math.random()*maxX}px`;
-    el.style.top="-65px";
+    
     const duration=3.5+Math.random()*2.2;
     el.style.animationDuration=`${duration}s`;
-    el.style.setProperty("--fall-distance",`${arena.clientHeight+85}px`);
+    
+    const fallDistance = arena.clientHeight + 80;
+    el.style.setProperty("--fall-distance", `${fallDistance}px`);
+    
     el.dataset.id=c.id;
     el.addEventListener("pointerdown",(event)=> {
       event.preventDefault();
@@ -307,7 +318,7 @@
     if (state.running) { clearInterval(state.spawnTimer);clearInterval(state.tickTimer); }
     state.running=false;state.ended=false;
     clearSprites();resetState();$("gameStatus").textContent="READY TO PLAY";
-    showOverlay("🌙⭐☁️","하늘 친구를 모아봐!","60초 동안 떨어지는 하늘 친구들을 터치해 봐.<br>연속으로 터치하면 콤보 보너스가 쌓여!","▶ 게임 시작");
+    showOverlay("🌙⭐☁️","Shooting star와 친구들","60초 동안 떨어지는 하늘 친구들을 터치해 봐.<br>연속으로 터치하면 콤보 보너스가 쌓여!","▶ 게임 시작");
   });
   $("soundBtn").addEventListener("click",()=>{
     state.sound=!state.sound;
@@ -317,7 +328,6 @@
   });
   document.addEventListener("visibilitychange",()=>{
     if(state.running && document.hidden) {
-      // 시간은 실제 경과 시간을 기준으로 계산하므로 백그라운드 복귀 시에도 타이머가 정확히 반영됩니다.
       state.timeLeft=Math.max(0,(state.endAt-Date.now())/1000);
       updateUI();
       if(state.timeLeft<=0) endGame();
