@@ -1,1 +1,128 @@
-
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f5ef">
+<title>직무교재 오디오북</title>
+<style>
+:root{--bg:#f7f5ef;--card:#fff;--ink:#242424;--muted:#666;--line:#e4e0d7;--accent:#315e50;--accent2:#e5eee9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;line-height:1.55}
+header{padding:calc(16px + env(safe-area-inset-top)) 18px 16px;background:var(--accent);color:white}
+header h1{font-size:21px;margin:0 0 3px}header p{font-size:13px;margin:0;opacity:.9}
+main{max-width:760px;margin:auto;padding:16px 14px calc(32px + env(safe-area-inset-bottom))}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:13px;box-shadow:0 2px 8px #00000006}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}
+button,.filelabel,select,input[type=range]{font:inherit}button,.filelabel{border:0;border-radius:12px;padding:11px 14px;background:var(--accent);color:white;font-weight:650;cursor:pointer;min-height:44px}
+button.secondary{background:var(--accent2);color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}
+.filelabel{display:inline-flex;align-items:center;justify-content:center}input[type=file]{display:none}
+.small{font-size:12px;color:var(--muted)}.status{font-size:14px;margin-top:9px;color:var(--muted);white-space:pre-wrap}
+h2{font-size:16px;margin:0 0 10px}.titleline{font-weight:700;margin-bottom:4px;overflow-wrap:anywhere}
+select{padding:9px;border:1px solid var(--line);border-radius:10px;background:white}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.progress{height:6px;background:#ece9e2;border-radius:9px;overflow:hidden;margin:12px 0}.progress>div{height:100%;background:var(--accent);width:0%}
+.textpage{white-space:pre-wrap;font-size:17px;line-height:1.9;max-height:40vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:14px;background:#fffdf9}
+.bookmarks{display:flex;flex-direction:column;gap:8px}.bm{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--line);padding:9px 10px;border-radius:10px}.bm button{padding:7px 10px;min-height:36px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:10px}
+@media(min-width:650px){main{padding-top:22px}.textpage{max-height:52vh}}
+</style>
+</head>
+<body>
+<header><h1>📖 직무교재 오디오북</h1><p>내 PDF를 불러와 듣기 · 북마크 · 이어 듣기</p></header>
+<main>
+<section class="panel">
+  <h2>1. 교재 불러오기</h2>
+  <div class="row">
+    <label class="filelabel" for="pdfFile">PDF 파일 선택</label>
+    <input id="pdfFile" type="file" accept="application/pdf,.pdf">
+    <button class="secondary" id="resumeBtn" disabled>저장 위치 이어 듣기</button>
+  </div>
+  <div class="status" id="fileStatus">PDF 파일은 이 브라우저 안에서 처리하며 서버로 업로드하지 않습니다.</div>
+</section>
+<section class="panel">
+  <h2>2. 음성 재생</h2>
+  <div class="titleline" id="docName">교재를 먼저 선택해 주세요</div>
+  <div class="small" id="pageLabel">페이지 —</div>
+  <div class="progress"><div id="progressBar"></div></div>
+  <div class="row">
+    <button id="prevBtn" class="secondary" disabled>◀ 이전 페이지</button>
+    <button id="playBtn" disabled>▶ 읽기 시작</button>
+    <button id="pauseBtn" class="secondary" disabled>Ⅱ 일시정지</button>
+    <button id="stopBtn" class="secondary" disabled>■ 정지</button>
+    <button id="nextBtn" class="secondary" disabled>다음 페이지 ▶</button>
+  </div>
+  <div style="margin-top:14px">
+    <div class="row" style="justify-content:space-between"><label for="speed">읽기 속도</label><strong id="speedLabel">1.0배</strong></div>
+    <input id="speed" type="range" min="0.6" max="1.5" step="0.1" value="1">
+  </div>
+  <div style="margin-top:12px">
+    <label for="voiceSelect">한국어 음성</label>
+    <select id="voiceSelect" style="width:100%;margin-top:5px"><option value="">기기 기본 한국어 음성</option></select>
+    <div class="small" style="margin-top:5px">음성 목록은 기기/브라우저가 제공하는 항목입니다. 오프라인 사용 가능 여부는 기기의 음성 설정에 따라 달라집니다.</div>
+  </div>
+  <div class="status" id="playStatus">PDF를 불러온 뒤 읽기 시작을 눌러 주세요.</div>
+</section>
+<section class="panel">
+  <div class="row" style="justify-content:space-between">
+    <h2 style="margin:0">3. 현재 페이지</h2>
+    <button id="bookmarkBtn" class="secondary" disabled>🔖 북마크 추가</button>
+  </div>
+  <div id="pageText" class="textpage" style="margin-top:10px">PDF 본문이 여기에 표시됩니다.</div>
+  <div class="small" style="margin-top:8px">스캔한 이미지형 PDF는 텍스트가 추출되지 않을 수 있습니다. 이 앱은 OCR을 수행하지 않습니다.</div>
+</section>
+<section class="panel">
+  <h2>북마크</h2>
+  <div id="bookmarkList" class="bookmarks"><div class="small">저장된 북마크가 없습니다.</div></div>
+</section>
+<section class="panel">
+  <h2>오프라인·개인정보 안내</h2>
+  <div class="small">처음 앱을 열 때는 인터넷 연결이 필요합니다. 앱 파일과 PDF 처리 라이브러리가 캐시된 뒤에는 오프라인으로 열 수 있도록 구성되어 있습니다. 음성 합성은 기기의 한국어 음성 엔진을 사용하며, 한국어 오프라인 음성이 기기에 설치되어 있어야 인터넷 없이 읽을 수 있습니다. 음성 엔진과 iOS는 백그라운드 재생을 중단할 수 있으므로 화면을 켠 상태에서 먼저 시험해 주세요. 교재 내용은 서버로 전송하지 않습니다. 북마크와 이어 읽기 정보는 이 브라우저의 로컬 저장소에 기록됩니다.</div>
+</section>
+<footer>개인 학습용 · 교재 파일 자체는 앱에 저장/업로드되지 않습니다.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const STORAGE_KEY = "jobAudioReader_v1";
+const CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = CDN + "pdf.worker.min.js";
+let pdfDoc = null, fileName = "", currentPage = 1, pages = [], pageText = "", utterance = null;
+let bookmarks = [], saved = null, active = false, currentChunk = 0, chunks = [];
+const synth = window.speechSynthesis;
+function loadSaved(){try{saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null")}catch(e){saved=null} if(saved?.bookmarks) bookmarks=saved.bookmarks; renderBookmarks(); $("resumeBtn").disabled=!saved?.fileName}
+function persist(){const data={fileName:fileName||saved?.fileName||"",page:currentPage||saved?.page||1,bookmarks};try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));saved=data;$("resumeBtn").disabled=false}catch(e){$("fileStatus").textContent="브라우저 저장 공간에 기록하지 못했습니다. 개인 브라우징 설정을 확인해 주세요."}}
+function status(t){$("playStatus").textContent=t}
+function stopSpeech(){if(synth)synth.cancel();active=false;utterance=null;$("pauseBtn").disabled=true;$("playBtn").textContent="▶ 읽기 시작"}
+function setButtons(on){["prevBtn","playBtn","stopBtn","nextBtn","bookmarkBtn"].forEach(id=>$(id).disabled=!on)}
+function cleanText(t){return (t||"").replace(/\u0000/g,"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim()}
+function splitChunks(text){let s=cleanText(text); if(!s)return []; // keep utterances small for iOS reliability
+let out=s.match(/[^.!?。！？\n]+[.!?。！？]?|\n+/g)||[s]; return out.map(x=>x.trim()).filter(Boolean).reduce((a,x)=>{if(x.length>420){for(let i=0;i<x.length;i+=350)a.push(x.slice(i,i+350))}else a.push(x);return a},[])}
+async function showPage(n){if(!pdfDoc)return;stopSpeech();currentPage=Math.max(1,Math.min(pdfDoc.numPages,n));const p=await pdfDoc.getPage(currentPage);const content=await p.getTextContent();pageText=cleanText(content.items.map(x=>x.str).join(" "));$("pageText").textContent=pageText||"이 페이지에서 텍스트를 찾지 못했습니다. 스캔 이미지형 PDF일 수 있습니다."; $("pageLabel").textContent=`${currentPage} / ${pdfDoc.numPages} 페이지`; $("progressBar").style.width=(currentPage/pdfDoc.numPages*100)+"%"; $("prevBtn").disabled=currentPage<=1;$("nextBtn").disabled=currentPage>=pdfDoc.numPages;$("bookmarkBtn").disabled=false;$("playBtn").disabled=!pageText;$("stopBtn").disabled=false;$("docName").textContent=fileName;status(pageText?"현재 페이지를 읽을 준비가 되었습니다.":"텍스트가 추출되지 않았습니다.");persist()}
+async function loadFile(file){if(!file)return;if(!window.pdfjsLib){$("fileStatus").textContent="PDF 처리 라이브러리를 불러오지 못했습니다. 인터넷 연결 후 앱을 다시 열어 주세요.";return}
+stopSpeech();fileName=file.name;$("fileStatus").textContent="PDF를 읽는 중입니다…";try{const buf=await file.arrayBuffer();pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;currentPage=1;setButtons(true);await showPage(1);$("fileStatus").textContent=`불러오기 완료 · ${pdfDoc.numPages}페이지 · 파일은 기기 안에서 처리됩니다.`;persist()}catch(e){$("fileStatus").textContent="PDF를 열 수 없습니다. 파일이 손상되었거나 암호가 설정되어 있는지 확인해 주세요.";console.error(e)}}
+function voices(){if(!synth)return;const all=synth.getVoices();const ko=all.filter(v=>(v.lang||"").toLowerCase().startsWith("ko"));const sel=$("voiceSelect"),old=sel.value;sel.innerHTML="";const d=document.createElement("option");d.value="";d.textContent=ko.length?"기본 한국어 음성":"기기 기본 음성 (한국어 음성이 없을 수 있음)";sel.appendChild(d);ko.forEach((v,i)=>{const o=document.createElement("option");o.value=String(i);o.textContent=`${v.name} (${v.lang})`;o.dataset.voiceURI=v.voiceURI;sel.appendChild(o)});if(old)sel.value=old}
+function selectedVoice(){const all=synth?.getVoices()||[],ko=all.filter(v=>(v.lang||"").toLowerCase().startsWith("ko")),i=$("voiceSelect").value;return i!==""?ko[Number(i)]:ko[0]||null}
+function speakFrom(index=0){if(!synth){status("이 브라우저에서는 음성 읽기를 지원하지 않습니다. Safari 또는 최신 Chrome/Edge를 사용해 주세요.");return}chunks=splitChunks(pageText);if(!chunks.length){status("읽을 텍스트가 없습니다.");return}synth.cancel();currentChunk=index;active=true;$("pauseBtn").disabled=false;$("playBtn").textContent="▶ 다시 시작";status(`읽는 중 · ${currentPage}페이지`);speakChunk()}
+function speakChunk(){if(!active||currentChunk>=chunks.length){if(currentChunk>=chunks.length){active=false;$("playBtn").textContent="▶ 다시 읽기";$("pauseBtn").disabled=true;status("현재 페이지를 다 읽었습니다.");persist()}return}
+utterance=new SpeechSynthesisUtterance(chunks[currentChunk]);utterance.lang="ko-KR";const v=selectedVoice();if(v)utterance.voice=v;utterance.rate=Number($("speed").value);utterance.onend=()=>{currentChunk++; if(active)speakChunk()};utterance.onerror=(e)=>{active=false;$("pauseBtn").disabled=true;status("음성 재생이 중단되었습니다. 화면을 켠 상태에서 다시 시도해 주세요.");console.warn(e)};synth.speak(utterance)}
+$("pdfFile").addEventListener("change",e=>loadFile(e.target.files?.[0]));
+$("playBtn").addEventListener("click",()=>{if(synth?.paused){synth.resume();active=true;status(`읽는 중 · ${currentPage}페이지`);$("playBtn").textContent="▶ 다시 시작";$("pauseBtn").disabled=false}else speakFrom(0)});
+$("pauseBtn").addEventListener("click",()=>{if(synth?.speaking&&!synth.paused){synth.pause();status("일시정지됨");$("playBtn").textContent="▶ 계속 읽기"}else if(synth?.paused){synth.resume();status("읽는 중");$("playBtn").textContent="▶ 다시 시작"}});
+$("stopBtn").addEventListener("click",()=>{stopSpeech();status("읽기를 정지했습니다.")});
+$("prevBtn").addEventListener("click",()=>showPage(currentPage-1));$("nextBtn").addEventListener("click",()=>showPage(currentPage+1));
+$("speed").addEventListener("input",e=>$("speedLabel").textContent=Number(e.target.value).toFixed(1)+"배");
+$("bookmarkBtn").addEventListener("click",()=>{if(!pdfDoc)return;const bm={page:currentPage,label:`${fileName} · ${currentPage}페이지`,time:Date.now()};if(!bookmarks.some(b=>b.fileName===fileName&&b.page===currentPage))bookmarks.unshift({fileName,page:currentPage,label:bm.label});renderBookmarks();persist();status(`${currentPage}페이지를 북마크에 저장했습니다.`)});
+function renderBookmarks(){const box=$("bookmarkList");box.innerHTML="";if(!bookmarks.length){box.innerHTML='<div class="small">저장된 북마크가 없습니다.</div>';return}bookmarks.forEach((b,i)=>{const row=document.createElement("div");row.className="bm";const label=document.createElement("span");label.textContent=b.label||`${b.fileName} · ${b.page}페이지`;label.style.flex="1";const go=document.createElement("button");go.className="secondary";go.textContent="이동";go.onclick=()=>{if(pdfDoc&&fileName===b.fileName)showPage(b.page);else status(`북마크는 ${b.fileName}의 ${b.page}페이지입니다. 해당 PDF를 다시 선택해 주세요.`)};const del=document.createElement("button");del.className="secondary";del.textContent="삭제";del.onclick=()=>{bookmarks.splice(i,1);renderBookmarks();persist()};row.append(label,go,del);box.appendChild(row)})}
+$("resumeBtn").addEventListener("click",()=>{if(!saved)return;status(`마지막 위치는 ${saved.fileName} ${saved.page}페이지입니다. 개인정보 보호를 위해 PDF 파일을 다시 선택한 뒤 이어 읽을 수 있습니다.`);$("fileStatus").textContent=`이어서 읽을 파일: ${saved.fileName} · ${saved.page}페이지. PDF를 다시 선택하면 저장된 페이지로 이동할 수 있습니다.`;window._resumePage=saved.page;window._resumeName=saved.fileName});
+const originalLoadFile=loadFile;
+$("pdfFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return; if(window._resumeName===f.name&&window._resumePage){await originalLoadFile(f);await showPage(window._resumePage);window._resumePage=null;window._resumeName=null}}, {once:false});
+if(synth){voices();synth.onvoiceschanged=voices}
+loadSaved();
+if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
+if(!window.pdfjsLib){$("fileStatus").textContent="PDF 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요."}
+})();
+</script>
+</body>
+</html>
