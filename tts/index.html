@@ -1,1 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fc">
+  <title>직무교재 TTS 플레이어</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div class="eyebrow">OFFLINE STUDY PLAYER</div>
+      <h1>직무교재 TTS 플레이어</h1>
+      <p>TXT를 불러오고, 듣던 곳에서 다시 시작하세요.</p>
+    </header>
 
+    <section class="panel file-panel">
+      <label class="file-button" for="fileInput">＋ TXT 파일 불러오기</label>
+      <input id="fileInput" type="file" accept=".txt,text/plain">
+      <div class="file-meta">
+        <div id="fileName" class="file-name">불러온 파일이 없습니다</div>
+        <div id="fileInfo" class="muted">UTF-8 TXT 파일을 권장합니다.</div>
+      </div>
+      <div class="saved-row">
+        <span id="savedStatus" class="status">읽기 위치가 여기에 저장됩니다.</span>
+        <button id="clearProgress" class="text-button" type="button">진도 초기화</button>
+      </div>
+    </section>
+
+    <section class="panel controls-panel">
+      <div class="section-heading">재생</div>
+      <div class="voice-row">
+        <label for="voiceSelect">음성</label>
+        <select id="voiceSelect" aria-label="음성 선택">
+          <option value="">기본 음성</option>
+        </select>
+        <button id="refreshVoices" class="small-button" type="button">음성 새로고침</button>
+      </div>
+      <div class="speed-row">
+        <label for="rateSelect">읽기 속도</label>
+        <select id="rateSelect">
+          <option value="0.7">0.7배</option>
+          <option value="0.85">0.85배</option>
+          <option value="1" selected>1.0배</option>
+          <option value="1.15">1.15배</option>
+          <option value="1.3">1.3배</option>
+          <option value="1.5">1.5배</option>
+          <option value="1.75">1.75배</option>
+          <option value="2">2.0배</option>
+        </select>
+      </div>
+
+      <div class="progress-block">
+        <div class="progress-labels">
+          <span id="currentTime">0%</span>
+          <span id="progressText">읽기 전</span>
+          <span id="totalTime">100%</span>
+        </div>
+        <input id="seekBar" type="range" min="0" max="1000" value="0" step="1" aria-label="텍스트 위치 탐색">
+        <div class="hint">막대를 움직이면 해당 위치부터 읽습니다. 진행률은 텍스트 기준입니다.</div>
+      </div>
+
+      <div class="main-buttons">
+        <button id="restartBtn" class="secondary-button" type="button" disabled>처음부터</button>
+        <button id="playPauseBtn" class="primary-button" type="button" disabled>▶ 재생</button>
+        <button id="stopBtn" class="secondary-button" type="button" disabled>■ 정지</button>
+      </div>
+      <div class="skip-buttons">
+        <button id="backBtn" class="skip-button" type="button" disabled>↶ 30초 뒤로</button>
+        <button id="forwardBtn" class="skip-button" type="button" disabled>30초 앞으로 ↷</button>
+      </div>
+      <p id="playbackMessage" class="message" role="status">TXT 파일을 불러와 시작하세요.</p>
+    </section>
+
+    <section class="panel text-panel">
+      <div class="text-header">
+        <div>
+          <div class="section-heading">교재 내용</div>
+          <div class="muted">현재 읽는 문장이 강조 표시됩니다.</div>
+        </div>
+        <button id="toggleTextBtn" class="text-button" type="button">텍스트 접기</button>
+      </div>
+      <div id="textContent" class="text-content">
+        <div class="empty-state">TXT 파일을 불러오면 교재 내용이 여기에 표시됩니다.</div>
+      </div>
+    </section>
+
+    <footer>
+      <p>이 앱은 기기 내장 음성을 사용합니다. 한국어 음성 설치 여부와 오프라인 지원은 기기 설정에 따라 달라질 수 있습니다.</p>
+      <p>읽기 위치는 현재 브라우저의 기기에 저장됩니다. 브라우저 데이터 삭제 시 저장 내용이 사라질 수 있습니다.</p>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator && location.protocol === "https:") {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch((error) => console.warn("오프라인 캐시 등록 실패", error));
+      });
+    }
+  </script>
+</body>
+</html>
