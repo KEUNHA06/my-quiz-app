@@ -1,4 +1,4 @@
-const CACHE_NAME = "txt-tts-player-v1";
+const CACHE_NAME = "txt-tts-player-v2";
 const APP_FILES = [
   "./",
   "./index.html",

@@ -10,6 +10,7 @@
     currentTime: $("currentTime"), totalTime: $("totalTime"), progressText: $("progressText"),
     restartBtn: $("restartBtn"), playPauseBtn: $("playPauseBtn"), stopBtn: $("stopBtn"),
     backBtn: $("backBtn"), forwardBtn: $("forwardBtn"), playbackMessage: $("playbackMessage"),
+    wakeLockBtn: $("wakeLockBtn"), wakeLockStatus: $("wakeLockStatus"),
     textContent: $("textContent"), toggleTextBtn: $("toggleTextBtn")
   };
 
@@ -31,6 +32,8 @@
   let voices = [];
   let currentObjectUrl = null;
   let seekPending = false;
+  let wakeLockSentinel = null;
+  let wakeLockEnabled = false;
 
   function supported() {
     return "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
@@ -141,6 +144,61 @@
     els.totalTime.textContent = "100%";
     els.progressText.textContent = sentences.length ? `${Math.min(currentIndex + 1, sentences.length)} / ${sentences.length} 문장` : "읽기 전";
     highlightCurrent();
+  }
+
+  function updateWakeLockUI() {
+    const active = Boolean(wakeLockSentinel && !wakeLockSentinel.released);
+    els.wakeLockBtn.setAttribute("aria-pressed", String(active));
+    if (active) {
+      els.wakeLockBtn.textContent = "☀ 화면 켜짐 유지: 켜짐";
+      els.wakeLockBtn.classList.add("wake-lock-active");
+      els.wakeLockStatus.textContent = "화면이 자동으로 꺼지지 않도록 유지 중입니다. 배터리 소모가 늘 수 있습니다.";
+    } else if (wakeLockEnabled) {
+      els.wakeLockBtn.textContent = "☀ 화면 켜짐 유지: 다시 켜기";
+      els.wakeLockBtn.classList.remove("wake-lock-active");
+      els.wakeLockStatus.textContent = "화면 켜짐 유지가 해제되었습니다. 이 버튼을 눌러 다시 요청하세요.";
+    } else {
+      els.wakeLockBtn.textContent = "☀ 화면 켜짐 유지: 끔";
+      els.wakeLockBtn.classList.remove("wake-lock-active");
+      els.wakeLockStatus.textContent = "읽는 동안 화면이 자동으로 꺼지지 않게 합니다. 기기·브라우저 지원 여부에 따라 달라질 수 있습니다.";
+    }
+  }
+
+  async function enableWakeLock() {
+    if (!navigator.wakeLock || typeof navigator.wakeLock.request !== "function") {
+      wakeLockEnabled = false;
+      updateWakeLockUI();
+      els.wakeLockStatus.textContent = "이 브라우저에서는 화면 켜짐 유지 기능을 지원하지 않습니다. iPhone 설정 > 디스플레이 및 밝기 > 자동 잠금에서 시간을 늘려 보세요.";
+      return false;
+    }
+    try {
+      wakeLockSentinel = await navigator.wakeLock.request("screen");
+      wakeLockEnabled = true;
+      wakeLockSentinel.addEventListener("release", () => {
+        wakeLockSentinel = null;
+        updateWakeLockUI();
+      }, { once: true });
+      updateWakeLockUI();
+      return true;
+    } catch (error) {
+      wakeLockSentinel = null;
+      updateWakeLockUI();
+      const notAllowed = error && error.name === "NotAllowedError";
+      els.wakeLockStatus.textContent = notAllowed
+        ? "화면 켜짐 유지 요청이 거절되었습니다. 화면이 켜진 상태에서 다시 누르고, 저전력 모드도 확인해 주세요."
+        : "화면 켜짐 유지 기능을 켜지 못했습니다. 화면이 켜진 상태에서 다시 시도해 주세요.";
+      return false;
+    }
+  }
+
+  async function disableWakeLock() {
+    wakeLockEnabled = false;
+    const sentinel = wakeLockSentinel;
+    wakeLockSentinel = null;
+    if (sentinel && !sentinel.released) {
+      try { await sentinel.release(); } catch (_) {}
+    }
+    updateWakeLockUI();
   }
 
   function updateButtons() {
@@ -333,6 +391,30 @@
     }
   }
 
+  els.wakeLockBtn.addEventListener("click", async () => {
+    const active = Boolean(wakeLockSentinel && !wakeLockSentinel.released);
+    if (active) {
+      await disableWakeLock();
+    } else {
+      // A previous wake lock may have been revoked; tapping should retry it.
+      wakeLockEnabled = false;
+      const ok = await enableWakeLock();
+      if (ok) setMessage("화면 켜짐 유지가 켜졌습니다. 읽는 동안 화면이 자동으로 꺼지지 않도록 요청했습니다.");
+    }
+  });
+
+  document.addEventListener("visibilitychange", async () => {
+    if (document.hidden) {
+      saveState();
+      return;
+    }
+    // Browsers may release wake locks while hidden. Try to restore it on return;
+    // some iOS contexts can require the user to tap the button again.
+    if (wakeLockEnabled && (!wakeLockSentinel || wakeLockSentinel.released)) {
+      await enableWakeLock();
+    }
+  });
+
   els.fileInput.addEventListener("change", (e) => loadFile(e.target.files?.[0]));
   els.playPauseBtn.addEventListener("click", play);
   els.stopBtn.addEventListener("click", stop);
@@ -382,8 +464,6 @@
     els.toggleTextBtn.textContent = collapsed ? "텍스트 펼치기" : "텍스트 접기";
   });
   window.addEventListener("beforeunload", saveState);
-  document.addEventListener("visibilitychange", () => { if (document.hidden) saveState(); });
-
   if (supported()) {
     populateVoices();
     window.speechSynthesis.onvoiceschanged = populateVoices;
@@ -392,4 +472,5 @@
     setMessage("이 브라우저는 음성 합성을 지원하지 않습니다. 최신 iOS Safari 또는 PC Chrome/Edge를 이용해 주세요.");
   }
   updateButtons();
+  updateWakeLockUI();
 })();

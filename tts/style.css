@@ -69,3 +69,21 @@ footer p { margin: 8px 0; }
   .panel { padding: 24px; }
   .text-content { max-height: 600px; }
 }
+
+.wake-lock-row { margin-top: 12px; }
+.wake-lock-button {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 750;
+}
+.wake-lock-button.wake-lock-active {
+  border-color: var(--accent);
+  background: var(--soft);
+  color: var(--accent-dark);
+}
+.wake-lock-row .hint { margin: 7px 2px 0; line-height: 1.45; }
