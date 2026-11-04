@@ -1,0 +1,11 @@
+{
+  "name": "직무교재 TTS 플레이어",
+  "short_name": "교재 TTS",
+  "description": "TXT 교재를 오프라인에서 읽고 이어 듣는 학습 플레이어",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#f7f8fc",
+  "lang": "ko-KR"
+}
