@@ -1,1 +1,209 @@
-
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f6ef">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="TXT 암기장">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<title>TXT 암기장</title>
+<style>
+:root{--bg:#f4f6ef;--paper:#fff;--ink:#263329;--muted:#758075;--green:#557a59;--green2:#e9f0e6;--line:#e3e8df;--red:#b64e46;--amber:#a66b24;--shadow:0 8px 28px rgba(35,55,35,.07)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;line-height:1.55}
+header{padding:calc(16px + env(safe-area-inset-top)) 18px 14px;background:rgba(244,246,239,.94);position:sticky;top:0;z-index:5;backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.head{max-width:820px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:21px;margin:0;font-weight:800;letter-spacing:-.6px}.sub{font-size:12px;color:var(--muted);margin-top:2px}
+main{max-width:820px;margin:0 auto;padding:18px 16px 100px}
+nav{display:flex;gap:7px;overflow:auto;margin:0 0 17px;padding:2px 0 5px}
+.tab{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:9px 14px;white-space:nowrap;color:var(--muted);font-weight:700}
+.tab.active{background:var(--green);border-color:var(--green);color:white}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:19px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+h2{font-size:17px;margin:0 0 12px}h3{font-size:14px;margin:0 0 8px}
+p{margin:7px 0}.muted{color:var(--muted);font-size:13px}.small{font-size:12px;color:var(--muted)}
+button,.filebtn{border:0;border-radius:12px;padding:12px 15px;font-size:14px;font-weight:750;background:var(--green);color:white;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:var(--green2);color:var(--green)}.ghost{background:#f4f6f2;color:#4d5d4e;border:1px solid var(--line)}.danger{background:#faecea;color:var(--red)}
+input[type=text],textarea{width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff;color:var(--ink);outline-color:var(--green)}
+input[type=file]{display:none}.filebtn{display:inline-block}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.stat{background:#f6f8f3;border-radius:13px;padding:12px;text-align:center}.stat b{display:block;font-size:21px}.stat span{font-size:11px;color:var(--muted)}
+.progress{height:7px;background:#edf0e9;border-radius:99px;overflow:hidden;margin:9px 0}.progress>i{display:block;height:100%;background:var(--green);width:0}
+.question{font-size:18px;line-height:2.1;word-break:keep-all}.blank{display:inline-block;vertical-align:baseline;min-width:76px;padding:1px 7px;margin:0 2px;border-bottom:2px solid #91a58d;background:#f0f5ed;border-radius:6px;color:var(--green);font-size:14px;text-align:center}
+.answer-list{display:grid;gap:10px;margin-top:18px}.answer-item label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.feedback{padding:13px;border-radius:12px;margin-top:14px;font-size:14px}.good{background:#eaf4e8;color:#315f37}.bad{background:#fbefed;color:#98433d}
+.hidden{display:none!important}.sentence-card{padding:13px 0;border-bottom:1px solid var(--line)}.sentence-card:last-child{border:0}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:18px}
+@media(min-width:650px){main{padding-top:25px}.panel{padding:22px}.question{font-size:21px}}
+</style>
+</head>
+<body>
+<header><div class="head"><div><h1>📚 TXT 암기장</h1><div class="sub">내 교재로 만드는 랜덤 빈칸 학습</div></div><span id="offline" class="small">● 준비 중</span></div></header>
+<main>
+<nav>
+<button class="tab active" data-view="home">홈</button>
+<button class="tab" data-view="study">학습하기</button>
+<button class="tab" data-view="wrong">오답노트</button>
+<button class="tab" data-view="library">문장 목록</button>
+<button class="tab" data-view="stats">학습 통계</button>
+</nav>
+<section id="home" class="view">
+ <div class="panel">
+  <div class="between"><h2>내 교재</h2><span class="small" id="fileStatus">아직 불러온 파일이 없어요</span></div>
+  <p id="fileName" style="font-weight:750">TXT 파일을 불러와 시작하세요.</p>
+  <p class="muted">파일은 이 기기 안에서만 처리됩니다. 서버로 전송하지 않습니다.</p>
+  <div class="row" style="margin-top:14px">
+   <label class="filebtn" for="txtFile">＋ TXT 파일 불러오기</label><input id="txtFile" type="file" accept=".txt,text/plain">
+   <button class="secondary" id="resumeBtn" disabled>이어서 학습</button>
+  </div>
+ </div>
+ <div class="panel">
+  <h2>학습 현황</h2>
+  <div class="stats"><div class="stat"><b id="totalN">0</b><span>전체 문장</span></div><div class="stat"><b id="doneN">0</b><span>푼 문장</span></div><div class="stat"><b id="rateN">0%</b><span>정답률</span></div></div>
+  <div class="progress"><i id="homeProgress"></i></div>
+  <p class="muted" id="progressText">교재를 불러오면 학습 현황이 표시됩니다.</p>
+ </div>
+ <div class="panel"><h2>출제 설정</h2><p class="muted">문장마다 핵심 단어 2~3개를 무작위로 가립니다. 핵심어가 적은 문장은 가능한 개수만 가립니다.</p><div class="row"><button id="startBtn" disabled>랜덤 학습 시작</button><button class="secondary" id="wrongStartBtn" disabled>오답만 복습</button></div></div>
+ <p class="small">※ 첫 접속은 인터넷 연결이 필요합니다. 앱 파일이 캐시된 뒤에는 오프라인에서도 실행할 수 있습니다.</p>
+</section>
+<section id="study" class="view hidden">
+ <div class="panel">
+  <div class="between"><span class="small" id="qPosition">문제 0 / 0</span><span class="small" id="qScore">정답 0</span></div>
+  <div class="progress"><i id="studyProgress"></i></div>
+  <h2>빈칸에 들어갈 핵심 단어를 입력하세요.</h2>
+  <div id="questionText" class="question">홈에서 TXT 파일을 불러온 뒤 학습을 시작하세요.</div>
+  <div id="answerFields" class="answer-list"></div>
+  <div class="row" style="margin-top:18px"><button id="gradeBtn" disabled>전체 정답 확인</button><button class="secondary" id="hintBtn" disabled>힌트 보기</button><button class="ghost" id="revealBtn" disabled>정답 보기</button></div>
+  <div id="feedback" class="feedback hidden"></div>
+  <div class="row" style="margin-top:14px"><button class="ghost" id="nextBtn" disabled>다음 문장 →</button><button class="ghost" id="endBtn">학습 종료</button></div>
+ </div>
+</section>
+<section id="wrong" class="view hidden">
+ <div class="panel"><div class="between"><h2>오답노트</h2><span class="small" id="wrongCount">0개</span></div><p class="muted">한 번이라도 틀린 문장이 저장됩니다. 다시 맞히면 오답 목록에서 자동으로 제외할 수 있습니다.</p><div class="row"><button id="wrongStudyBtn" disabled>오답 다시 풀기</button><button class="danger" id="clearWrongBtn">오답 기록 비우기</button></div></div>
+ <div class="panel" id="wrongList"><p class="muted">아직 오답이 없습니다.</p></div>
+</section>
+<section id="library" class="view hidden">
+ <div class="panel"><div class="between"><h2>전체 문장</h2><span class="small" id="libraryCount">0개</span></div><p class="muted">불러온 TXT에서 문장 단위로 분리한 내용입니다.</p><div id="libraryList"><p class="muted">교재를 먼저 불러오세요.</p></div></div>
+</section>
+<section id="stats" class="view hidden">
+ <div class="panel"><h2>학습 통계</h2><div class="stats"><div class="stat"><b id="statAttempts">0</b><span>총 채점 횟수</span></div><div class="stat"><b id="statCorrect">0</b><span>완전 정답</span></div><div class="stat"><b id="statAccuracy">0%</b><span>정답률</span></div></div></div>
+ <div class="panel"><h2>데이터 관리</h2><p class="muted">기기 변경이나 브라우저 데이터 삭제에 대비해 학습 기록을 백업하세요.</p><div class="row"><button id="exportBtn">백업 내보내기</button><label class="filebtn secondary" for="backupFile">백업 가져오기</label><input id="backupFile" type="file" accept=".json,application/json"></div><p class="small">백업 파일에는 불러온 TXT 본문과 학습 기록이 포함됩니다.</p></div>
+</section>
+<footer>TXT 암기장 · 개인 학습용 · 파일은 외부 서버로 전송되지 않습니다.</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const DB_NAME='txtMemoryTrainerDB', DB_VERSION=1, STORE='app';
+let db, state={text:'',fileName:'',sentences:[],wrong:{},attempts:0,correct:0,answered:{},lastIndex:0};
+let queue=[],qIndex=0,current=null,graded=false,wrongMode=false;
+const STOP=new Set(('그리고 그러나 또한 또는 다만 이에 따라 따라서 경우 해당 각각 다음 각 호 법 이하 사람 자 이 그 및 또는 중 동안 부분 일부 것 수 등 때 바 따라 의 에 에서 으로 로 를 을 은 는 이 가 와 과 도 만 에게 에는 에서부터 까지 한 하는 하며 하고 되어 있다 있는 없는 따른 따른다 한다 된다 지급한다 말한다').split(/\s+/));
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>req.result.createObjectStore(STORE);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+function dbGet(key){return new Promise((res,rej)=>{const r=db.transaction(STORE).objectStore(STORE).get(key);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function dbSet(key,val){return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(val,key);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+async function save(){try{await dbSet('state',state)}catch(e){console.error(e)}}
+function normalize(s){return (s||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'').replace(/[.,!?;:·ㆍ'"“”‘’()\[\]{}<>「」『』]/g,'')}
+function splitSentences(text){
+ const lines=text.replace(/\r\n?/g,'\n').split('\n');let out=[];
+ for(let line of lines){line=line.trim();if(!line)continue;
+  // 문장 종결부호 뒤 공백 또는 줄바꿈을 기준으로 분리. 숫자 목차의 "1."은 가급적 보존.
+  const parts=line.split(/(?<=[.!?。！？])\s+(?=[가-힣A-Za-z0-9「『“"'(])/u);
+  for(let p of parts){p=p.trim();if(p.length>=2)out.push(p)}
+ }
+ return out;
+}
+function getTokens(sentence){
+ const re=/\d+(?:년|월|일|개월|주|일|세|원|퍼센트|%|호|항|조)?|[가-힣A-Za-z]+(?:[·ㆍ][가-힣A-Za-z]+)*/gu;
+ let m,arr=[];while((m=re.exec(sentence))!==null){let raw=m[0],start=m.index,end=start+raw.length;
+  if(/^\d/.test(raw)){if(raw.length>=2||/[년월일개월주세원%호항조]/.test(raw))arr.push({raw,start,end,score:10});continue}
+  const n=raw.replace(/[·ㆍ]/g,'').length;
+  if(n<3||STOP.has(raw))continue;
+  if(/^(그리고|그러나|따라서|다만|또한|이러한|그러한|해당|다음|각각|경우|때문|통해|위해|따라서|이하|이상|미만|초과|이내|관련|대한|관한|있는|없는|한다|된다|하며|하고|하여|으로|에서|에게|부터|까지|처럼|보다|이라|이며|이고)$/.test(raw))continue;
+  let score=3+(n>=4?2:0)+( /연금|급여|가입|수급|기간|보험|납부|지급|산정|반환|분할|자격|요건|신청|인정|제외|기여|혼인|사업장|근로|기준|대상|보험료|소득|장애|유족|노령|가입자|수급권/.test(raw)?5:0);
+  arr.push({raw,start,end,score});
+ }
+ // 같은 단어가 반복되면 한 번만 후보로 선택
+ const seen=new Set();return arr.filter(t=>{const k=normalize(t.raw);if(seen.has(k))return false;seen.add(k);return true});
+}
+function chooseBlanks(sentence){
+ let candidates=getTokens(sentence);if(!candidates.length)return [];
+ // 점수 가중치가 높은 후보를 우선하되 무작위성을 유지
+ candidates=candidates.map(x=>({...x,weight:x.score+Math.random()*5})).sort((a,b)=>b.weight-a.weight);
+ const count=Math.min(candidates.length,2+Math.floor(Math.random()*2));
+ return candidates.slice(0,count).sort((a,b)=>a.start-b.start);
+}
+function renderQuestion(){
+ current=state.sentences[queue[qIndex]];graded=false;const blanks=chooseBlanks(current);
+ // 핵심어가 없으면 문장 그대로 제시하고 원문 확인형 문제로 처리
+ const parts=[];let pos=0;
+ blanks.forEach((b,i)=>{parts.push(esc(current.slice(pos,b.start)));parts.push(`<span class="blank">[${i+1}]</span>`);pos=b.end});parts.push(esc(current.slice(pos)));
+ $('questionText').innerHTML=parts.join('')||esc(current);
+ $('answerFields').innerHTML=blanks.length?blanks.map((b,i)=>`<div class="answer-item"><label for="ans${i}">${i+1}번 빈칸</label><input type="text" id="ans${i}" autocomplete="off" autocapitalize="off" placeholder="정답 입력" data-answer="${encodeURIComponent(b.raw)}"></div>`).join(''):'<p class="muted">가릴 핵심 단어를 찾지 못했습니다. 원문을 확인하고 다음 문장으로 이동하세요.</p>';
+ $('gradeBtn').disabled=!blanks.length;$('hintBtn').disabled=!blanks.length;$('revealBtn').disabled=!blanks.length;$('nextBtn').disabled=true;$('feedback').className='feedback hidden';$('feedback').textContent='';
+ $('qPosition').textContent=`문제 ${qIndex+1} / ${queue.length}`;$('qScore').textContent=`정답 ${state.correct}`;$('studyProgress').style.width=((qIndex)/Math.max(1,queue.length)*100)+'%';
+ currentBlanks=blanks;
+}
+let currentBlanks=[];
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('hidden',v.id!==name));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.view===name));if(name==='wrong')renderWrong();if(name==='library')renderLibrary();if(name==='stats')renderStats();window.scrollTo({top:0,behavior:'smooth'})}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>showView(t.dataset.view)));
+async function importTxt(file){
+ if(!file)return;if(!file.name.toLowerCase().endsWith('.txt')&&file.type!=='text/plain'){alert('TXT 파일만 불러올 수 있습니다.');return}
+ try{let text=await file.text();if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);if(!text.trim()){alert('파일 내용이 비어 있습니다.');return}
+  const sentences=splitSentences(text);if(!sentences.length){alert('문장을 찾지 못했습니다. TXT 내용을 확인해 주세요.');return}
+  if(state.sentences.length&&!confirm('새 TXT를 불러오면 현재 교재와 학습 기록이 새 파일로 교체됩니다. 계속할까요?'))return;
+  state={text,fileName:file.name,sentences,wrong:{},attempts:0,correct:0,answered:{},lastIndex:0};await save();refreshHome();alert(`${file.name}\n${sentences.length}개 문장을 불러왔습니다.`)
+ }catch(e){alert('파일을 읽지 못했습니다. UTF-8 형식의 TXT 파일인지 확인해 주세요.')}
+}
+function refreshHome(){
+ $('fileName').textContent=state.fileName||'TXT 파일을 불러와 시작하세요.';$('fileStatus').textContent=state.sentences.length?`${state.sentences.length}문장 준비 완료`:'파일 없음';
+ $('totalN').textContent=state.sentences.length;$('doneN').textContent=Object.keys(state.answered).length;
+ $('rateN').textContent=state.attempts?Math.round(state.correct/state.attempts*100)+'%':'0%';
+ const pct=state.sentences.length?Object.keys(state.answered).length/state.sentences.length*100:0;$('homeProgress').style.width=pct+'%';
+ $('progressText').textContent=state.sentences.length?`학습 완료 ${Math.round(pct)}% · 총 채점 ${state.attempts}회`:'교재를 불러오면 학습 현황이 표시됩니다.';
+ $('startBtn').disabled=!state.sentences.length;$('wrongStartBtn').disabled=!Object.keys(state.wrong).length;$('wrongStudyBtn').disabled=!Object.keys(state.wrong).length;$('resumeBtn').disabled=!state.sentences.length;
+ $('wrongCount').textContent=Object.keys(state.wrong).length+'개';$('libraryCount').textContent=state.sentences.length+'개';
+}
+function startStudy(onlyWrong=false){
+ if(!state.sentences.length)return;wrongMode=onlyWrong;
+ let indexes=onlyWrong?Object.keys(state.wrong).map(Number):state.sentences.map((_,i)=>i);
+ if(!indexes.length){alert('복습할 오답이 없습니다.');return}
+ // 무작위 순서
+ queue=indexes.sort(()=>Math.random()-.5);qIndex=0;showView('study');renderQuestion();
+}
+async function grade(){
+ if(graded)return;const inputs=[...$('answerFields').querySelectorAll('input')];if(inputs.some(i=>!i.value.trim())){alert('모든 빈칸에 정답을 입력해 주세요.');return}
+ let all=true,results=[];
+ inputs.forEach((input,i)=>{const expected=decodeURIComponent(input.dataset.answer),actual=input.value;const ok=normalize(expected)===normalize(actual);all=all&&ok;results.push({expected,actual,ok});input.disabled=true;input.style.borderColor=ok?'#78a77a':'#d28b83'});
+ state.attempts++;if(all)state.correct++;
+ const sentenceIndex=queue[qIndex];state.answered[sentenceIndex]=true;
+ if(all)delete state.wrong[sentenceIndex];else state.wrong[sentenceIndex]={sentence:current,results};
+ state.lastIndex=sentenceIndex;await save();graded=true;
+ $('feedback').className='feedback '+(all?'good':'bad');$('feedback').innerHTML=(all?'🎉 모두 정답입니다!':'다시 확인해 보세요. 일부 정답이 틀렸습니다.')+'<br>'+results.map((r,i)=>`${i+1}. ${r.ok?'정답':'정답: '+esc(r.expected)}`).join('<br>');
+ $('nextBtn').disabled=false;$('gradeBtn').disabled=true;$('hintBtn').disabled=true;$('revealBtn').disabled=true;refreshHome();
+}
+function hint(){if(!currentBlanks.length)return;const i=prompt('힌트를 볼 빈칸 번호를 입력하세요. (1~'+currentBlanks.length+')');const n=Number(i)-1;if(Number.isInteger(n)&&currentBlanks[n])alert('첫 글자: '+currentBlanks[n].raw.slice(0,1)+' · 글자 수: '+currentBlanks[n].raw.length)}
+function reveal(){if(!currentBlanks.length)return;alert(currentBlanks.map((b,i)=>`${i+1}. ${b.raw}`).join('\n'));$('nextBtn').disabled=false;$('gradeBtn').disabled=true;$('hintBtn').disabled=true;$('revealBtn').disabled=true}
+function next(){if(qIndex<queue.length-1){qIndex++;renderQuestion()}else{alert('이번 학습을 마쳤습니다!');showView('home');refreshHome()}}
+function renderWrong(){
+ const keys=Object.keys(state.wrong);$('wrongCount').textContent=keys.length+'개';$('wrongList').innerHTML=keys.length?keys.map(k=>`<div class="sentence-card"><div class="small">문장 ${Number(k)+1}</div>${esc(state.wrong[k].sentence)}</div>`).join(''):'<p class="muted">아직 오답이 없습니다.</p>';
+ $('wrongStartBtn').disabled=!keys.length;$('wrongStudyBtn').disabled=!keys.length;
+}
+function renderLibrary(){
+ $('libraryCount').textContent=state.sentences.length+'개';
+ $('libraryList').innerHTML=state.sentences.length?state.sentences.map((s,i)=>`<div class="sentence-card"><div class="between"><span class="small">문장 ${i+1}</span><span class="small">${state.answered[i]?'학습 완료':'미학습'}</span></div>${esc(s)}</div>`).join(''):'<p class="muted">교재를 먼저 불러오세요.</p>';
+}
+function renderStats(){
+ $('statAttempts').textContent=state.attempts;$('statCorrect').textContent=state.correct;$('statAccuracy').textContent=state.attempts?Math.round(state.correct/state.attempts*100)+'%':'0%';
+}
+$('txtFile').addEventListener('change',e=>{importTxt(e.target.files[0]);e.target.value=''});
+$('startBtn').onclick=()=>startStudy(false);$('wrongStartBtn').onclick=()=>startStudy(true);$('wrongStudyBtn').onclick=()=>startStudy(true);$('resumeBtn').onclick=()=>startStudy(false);
+$('gradeBtn').onclick=grade;$('hintBtn').onclick=hint;$('revealBtn').onclick=reveal;$('nextBtn').onclick=next;$('endBtn').onclick=()=>{showView('home');refreshHome()};
+$('clearWrongBtn').onclick=async()=>{if(confirm('오답 기록을 모두 삭제할까요?')){state.wrong={};await save();renderWrong();refreshHome()}};
+$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='txt-memory-backup.json';a.click();URL.revokeObjectURL(a.href)};
+$('backupFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.sentences)||typeof d.text!=='string')throw 0;if(!confirm('현재 학습 데이터를 백업 내용으로 교체할까요?'))return;state={...d};await save();refreshHome();alert('백업을 복원했습니다.')}catch(_){alert('올바른 백업 파일이 아닙니다.')}e.target.value=''};
+(async()=>{try{db=await openDB();const saved=await dbGet('state');if(saved)state={...state,...saved};refreshHome()}catch(e){console.error(e);alert('이 브라우저에서 로컬 저장소를 사용할 수 없습니다. 최신 Safari 또는 Chrome을 이용해 주세요.')}
+ if('serviceWorker'in navigator){try{await navigator.serviceWorker.register('./service-worker.js');$('offline').textContent='● 오프라인 준비'}catch(e){$('offline').textContent='● 온라인 모드'}}
+})();
+</script>
+</body></html>
