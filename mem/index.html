@@ -30,7 +30,7 @@ input[type=text],textarea{width:100%;padding:13px;border:1px solid var(--line);b
 input[type=file]{display:none}.filebtn{display:inline-block}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.stat{background:#f6f8f3;border-radius:13px;padding:12px;text-align:center}.stat b{display:block;font-size:21px}.stat span{font-size:11px;color:var(--muted)}
 .progress{height:7px;background:#edf0e9;border-radius:99px;overflow:hidden;margin:9px 0}.progress>i{display:block;height:100%;background:var(--green);width:0}
-.question{font-size:18px;line-height:2.1;word-break:keep-all}.blank{display:inline-block;vertical-align:baseline;min-width:76px;padding:1px 7px;margin:0 2px;border-bottom:2px solid #91a58d;background:#f0f5ed;border-radius:6px;color:var(--green);font-size:14px;text-align:center}
+.question{font-size:16px;line-height:1.9;word-break:keep-all}.study-sentence{padding:11px 9px;border-bottom:1px solid var(--line);border-radius:9px}.study-sentence:last-child{border:0}.study-sentence.active-sentence{background:#f1f6ee;border:1px solid #dce8d9}.study-sentence .sentence-no{display:inline-block;min-width:25px;color:var(--muted);font-size:12px;font-weight:800;vertical-align:top}.study-sentence .sentence-body{display:inline}.blank{display:inline-block;vertical-align:baseline;min-width:76px;padding:1px 7px;margin:0 2px;border-bottom:2px solid #91a58d;background:#f0f5ed;border-radius:6px;color:var(--green);font-size:14px;text-align:center}
 .answer-list{display:grid;gap:10px;margin-top:18px}.answer-item label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 .feedback{padding:13px;border-radius:12px;margin-top:14px;font-size:14px}.good{background:#eaf4e8;color:#315f37}.bad{background:#fbefed;color:#98433d}
 .hidden{display:none!important}.sentence-card{padding:13px 0;border-bottom:1px solid var(--line)}.sentence-card:last-child{border:0}
@@ -64,19 +64,19 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:18px}
   <div class="progress"><i id="homeProgress"></i></div>
   <p class="muted" id="progressText">교재를 불러오면 학습 현황이 표시됩니다.</p>
  </div>
- <div class="panel"><h2>출제 설정</h2><p class="muted">문장마다 핵심 단어 2~3개를 무작위로 가립니다. 핵심어가 적은 문장은 가능한 개수만 가립니다.</p><div class="row"><button id="startBtn" disabled>랜덤 학습 시작</button><button class="secondary" id="wrongStartBtn" disabled>오답만 복습</button></div></div>
+ <div class="panel"><h2>출제 설정</h2><p class="muted">한 화면에 문장 5개를 보여주고, 그중 한 문장에서 핵심 단어 딱 1개만 가립니다. 정답을 확인하면 다음 빈칸으로 넘어갑니다.</p><div class="row"><button id="startBtn" disabled>랜덤 학습 시작</button><button class="secondary" id="wrongStartBtn" disabled>오답만 복습</button></div></div>
  <p class="small">※ 첫 접속은 인터넷 연결이 필요합니다. 앱 파일이 캐시된 뒤에는 오프라인에서도 실행할 수 있습니다.</p>
 </section>
 <section id="study" class="view hidden">
  <div class="panel">
   <div class="between"><span class="small" id="qPosition">문제 0 / 0</span><span class="small" id="qScore">정답 0</span></div>
   <div class="progress"><i id="studyProgress"></i></div>
-  <h2>빈칸에 들어갈 핵심 단어를 입력하세요.</h2>
+  <h2>5개 문장을 읽고, 표시된 빈칸 하나를 채워 보세요.</h2>
   <div id="questionText" class="question">홈에서 TXT 파일을 불러온 뒤 학습을 시작하세요.</div>
   <div id="answerFields" class="answer-list"></div>
-  <div class="row" style="margin-top:18px"><button id="gradeBtn" disabled>전체 정답 확인</button><button class="secondary" id="hintBtn" disabled>힌트 보기</button><button class="ghost" id="revealBtn" disabled>정답 보기</button></div>
+  <div class="row" style="margin-top:18px"><button id="gradeBtn" disabled>정답 확인</button><button class="secondary" id="hintBtn" disabled>힌트 보기</button><button class="ghost" id="revealBtn" disabled>정답 보기</button></div>
   <div id="feedback" class="feedback hidden"></div>
-  <div class="row" style="margin-top:14px"><button class="ghost" id="nextBtn" disabled>다음 문장 →</button><button class="ghost" id="endBtn">학습 종료</button></div>
+  <div class="row" style="margin-top:14px"><button class="ghost" id="nextBtn" disabled>다음 빈칸 →</button><button class="ghost" id="endBtn">학습 종료</button></div>
  </div>
 </section>
 <section id="wrong" class="view hidden">
@@ -132,16 +132,28 @@ function chooseBlanks(sentence){
  const count=Math.min(candidates.length,2+Math.floor(Math.random()*2));
  return candidates.slice(0,count).sort((a,b)=>a.start-b.start);
 }
+function chooseOneBlank(sentence){
+ let candidates=getTokens(sentence);if(!candidates.length)return [];
+ // 핵심어 점수가 높은 후보 중에서도 매번 다른 단어가 선택되도록 무작위 선정
+ candidates=candidates.map(x=>({...x,weight:x.score+Math.random()*6})).sort((a,b)=>b.weight-a.weight);
+ const pool=candidates.slice(0,Math.min(6,candidates.length));
+ return [pool[Math.floor(Math.random()*pool.length)]];
+}
 function renderQuestion(){
- current=state.sentences[queue[qIndex]];graded=false;const blanks=chooseBlanks(current);
- // 핵심어가 없으면 문장 그대로 제시하고 원문 확인형 문제로 처리
- const parts=[];let pos=0;
- blanks.forEach((b,i)=>{parts.push(esc(current.slice(pos,b.start)));parts.push(`<span class="blank">[${i+1}]</span>`);pos=b.end});parts.push(esc(current.slice(pos)));
- $('questionText').innerHTML=parts.join('')||esc(current);
- $('answerFields').innerHTML=blanks.length?blanks.map((b,i)=>`<div class="answer-item"><label for="ans${i}">${i+1}번 빈칸</label><input type="text" id="ans${i}" autocomplete="off" autocapitalize="off" placeholder="정답 입력" data-answer="${encodeURIComponent(b.raw)}"></div>`).join(''):'<p class="muted">가릴 핵심 단어를 찾지 못했습니다. 원문을 확인하고 다음 문장으로 이동하세요.</p>';
- $('gradeBtn').disabled=!blanks.length;$('hintBtn').disabled=!blanks.length;$('revealBtn').disabled=!blanks.length;$('nextBtn').disabled=true;$('feedback').className='feedback hidden';$('feedback').textContent='';
- $('qPosition').textContent=`문제 ${qIndex+1} / ${queue.length}`;$('qScore').textContent=`정답 ${state.correct}`;$('studyProgress').style.width=((qIndex)/Math.max(1,queue.length)*100)+'%';
+ const batchStart=Math.floor(qIndex/5)*5;
+ const batch=queue.slice(batchStart,batchStart+5);
+ const sentenceIndex=queue[qIndex];
+ current=state.sentences[sentenceIndex];graded=false;
+ const blanks=chooseOneBlank(current);
  currentBlanks=blanks;
+ $('questionText').innerHTML=batch.map((idx,i)=>{
+  const sentence=state.sentences[idx];
+  if(idx===sentenceIndex&&blanks.length){const b=blanks[0];const masked=esc(sentence.slice(0,b.start))+'<span class="blank">[빈칸]</span>'+esc(sentence.slice(b.end));return `<div class="study-sentence active-sentence"><span class="sentence-no">${batchStart+i+1}.</span><span class="sentence-body">${masked}</span></div>`}
+  return `<div class="study-sentence"><span class="sentence-no">${batchStart+i+1}.</span><span class="sentence-body">${esc(sentence)}</span></div>`;
+ }).join('');
+ $('answerFields').innerHTML=blanks.length?`<div class="answer-item"><label for="ans0">빈칸 정답 하나만 입력하세요</label><input type="text" id="ans0" autocomplete="off" autocapitalize="off" placeholder="정답 입력" data-answer="${encodeURIComponent(blanks[0].raw)}"></div>`:'<p class="muted">이 문장에서는 가릴 핵심 단어를 찾지 못했습니다. 다음 문장으로 이동해 주세요.</p>';
+ $('gradeBtn').disabled=!blanks.length;$('hintBtn').disabled=!blanks.length;$('revealBtn').disabled=!blanks.length;$('nextBtn').disabled=blanks.length>0;$('feedback').className='feedback hidden';$('feedback').textContent='';
+ $('qPosition').textContent=`문장 ${qIndex+1} / ${queue.length} · 5문장씩 보기`;$('qScore').textContent=`정답 ${state.correct}`;$('studyProgress').style.width=((qIndex)/Math.max(1,queue.length)*100)+'%';
 }
 let currentBlanks=[];
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -172,18 +184,18 @@ function startStudy(onlyWrong=false){
  queue=indexes.sort(()=>Math.random()-.5);qIndex=0;showView('study');renderQuestion();
 }
 async function grade(){
- if(graded)return;const inputs=[...$('answerFields').querySelectorAll('input')];if(inputs.some(i=>!i.value.trim())){alert('모든 빈칸에 정답을 입력해 주세요.');return}
- let all=true,results=[];
- inputs.forEach((input,i)=>{const expected=decodeURIComponent(input.dataset.answer),actual=input.value;const ok=normalize(expected)===normalize(actual);all=all&&ok;results.push({expected,actual,ok});input.disabled=true;input.style.borderColor=ok?'#78a77a':'#d28b83'});
- state.attempts++;if(all)state.correct++;
+ if(graded)return;const input=$('answerFields').querySelector('input');if(!input||!input.value.trim()){alert('정답을 입력해 주세요.');return}
+ const expected=decodeURIComponent(input.dataset.answer),actual=input.value;const ok=normalize(expected)===normalize(actual);
+ input.disabled=true;input.style.borderColor=ok?'#78a77a':'#d28b83';
+ state.attempts++;if(ok)state.correct++;
  const sentenceIndex=queue[qIndex];state.answered[sentenceIndex]=true;
- if(all)delete state.wrong[sentenceIndex];else state.wrong[sentenceIndex]={sentence:current,results};
+ if(ok)delete state.wrong[sentenceIndex];else state.wrong[sentenceIndex]={sentence:current,results:[{expected,actual,ok:false}]};
  state.lastIndex=sentenceIndex;await save();graded=true;
- $('feedback').className='feedback '+(all?'good':'bad');$('feedback').innerHTML=(all?'🎉 모두 정답입니다!':'다시 확인해 보세요. 일부 정답이 틀렸습니다.')+'<br>'+results.map((r,i)=>`${i+1}. ${r.ok?'정답':'정답: '+esc(r.expected)}`).join('<br>');
+ $('feedback').className='feedback '+(ok?'good':'bad');$('feedback').innerHTML=ok?'🎉 정답입니다!':`다시 확인해 보세요.<br>정답: ${esc(expected)}`;
  $('nextBtn').disabled=false;$('gradeBtn').disabled=true;$('hintBtn').disabled=true;$('revealBtn').disabled=true;refreshHome();
 }
-function hint(){if(!currentBlanks.length)return;const i=prompt('힌트를 볼 빈칸 번호를 입력하세요. (1~'+currentBlanks.length+')');const n=Number(i)-1;if(Number.isInteger(n)&&currentBlanks[n])alert('첫 글자: '+currentBlanks[n].raw.slice(0,1)+' · 글자 수: '+currentBlanks[n].raw.length)}
-function reveal(){if(!currentBlanks.length)return;alert(currentBlanks.map((b,i)=>`${i+1}. ${b.raw}`).join('\n'));$('nextBtn').disabled=false;$('gradeBtn').disabled=true;$('hintBtn').disabled=true;$('revealBtn').disabled=true}
+function hint(){if(!currentBlanks.length)return;const b=currentBlanks[0];alert('첫 글자: '+b.raw.slice(0,1)+' · 글자 수: '+b.raw.length)}
+function reveal(){if(!currentBlanks.length)return;alert('정답: '+currentBlanks[0].raw);$('nextBtn').disabled=false;$('gradeBtn').disabled=true;$('hintBtn').disabled=true;$('revealBtn').disabled=true}
 function next(){if(qIndex<queue.length-1){qIndex++;renderQuestion()}else{alert('이번 학습을 마쳤습니다!');showView('home');refreshHome()}}
 function renderWrong(){
  const keys=Object.keys(state.wrong);$('wrongCount').textContent=keys.length+'개';$('wrongList').innerHTML=keys.length?keys.map(k=>`<div class="sentence-card"><div class="small">문장 ${Number(k)+1}</div>${esc(state.wrong[k].sentence)}</div>`).join(''):'<p class="muted">아직 오답이 없습니다.</p>';
