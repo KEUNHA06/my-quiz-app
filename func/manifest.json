@@ -1,0 +1,9 @@
+{
+  "name": "컴활 1급 함수 트레이닝",
+  "short_name": "함수 트레이닝",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f7f5",
+  "theme_color": "#183d32",
+  "lang": "ko"
+}
